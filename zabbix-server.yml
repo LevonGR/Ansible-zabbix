@@ -1,9 +1,9 @@
-- hosts: localhost
-
+- hosts: 
+    localhost
   vars:
-    zabbix_install_version: "5.0"
     zabbix_server_db_type: "Mysql"
-
+    zabbix_install_version: "5.0"
+  
   tasks:
 
 #configure zabbix repo
@@ -14,7 +14,7 @@
         pkg: python-pycurl
         state: present
   
-    - name: Zabbix | Debian | General | Add the Zabbix repository
+    - name: Zabbix | {{ ansible_distribution }} | General | Add the Zabbix repository
       become: yes
       register: fresh_repo
       apt:
@@ -22,7 +22,7 @@
         state: present
         update_cache: yes
 
-    - name: Zabbix | Debian | General | Update apt cache with new repo data
+    - name: Zabbix | {{ ansible_distribution }} | General | Update apt cache with new repo data
       become: yes
       apt:
         update_cache: yes
@@ -31,27 +31,30 @@
 
 # install server
 
-    - name: Zabbix | Debian | Update apt cache with new zabbix server versions
+    - name: Zabbix | {{ ansible_distribution }} | Update apt cache with new zabbix server versions
       become: yes
       apt:
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Zabbix | Debian | Make sure Zabbix server is installed
+    - name: Zabbix | {{ ansible_distribution }} | Make sure Zabbix server is installed
       become: yes
       apt:
         pkg: "zabbix-server-{{ zabbix_server_db_type | lower }}"
         state: latest
 
-    - name: Zabbix | Debian | Make sure additional packages installed for Zabbix server
+    - name: Zabbix | {{ ansible_distribution }} | Make sure additional packages installed for Zabbix server
       become: yes
       apt:
         pkg: snmp
         state: latest
+      notify: 'Start server'
         
 # start service 
 
-    - name: Zabbix | Debian | Start server service
+  handlers:
+    - name: Zabbix | {{ ansible_distribution }} | Start server service
+      listen: 'Start server'
       service:
         name: 'zabbix-server'
         state: started

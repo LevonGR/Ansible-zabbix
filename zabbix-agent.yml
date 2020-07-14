@@ -13,7 +13,7 @@
         pkg: python-pycurl
         state: present
   
-    - name: Zabbix | Debian | General | Add the Zabbix repository
+    - name: Zabbix | {{ ansible_distribution }} | General | Add the Zabbix repository
       become: yes
       register: fresh_repo
       apt:
@@ -21,7 +21,7 @@
         state: present
         update_cache: yes
 
-    - name: Zabbix | Debian | General | Update apt cache with new repo data
+    - name: Zabbix | {{ ansible_distribution }} | General | Update apt cache with new repo data
       become: yes
       apt:
         update_cache: yes
@@ -30,21 +30,23 @@
 
 # install agent
 
-    - name: Zabbix | Debian | Update apt cache with new zabbix agent versions
+    - name: Zabbix | {{ ansible_distribution }} | Update apt cache with new zabbix agent versions
       become: yes
       apt:
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Zabbix | Debian | Make sure Zabbix agent is installed
+    - name: Zabbix | {{ ansible_distribution }} | Make sure Zabbix agent is installed
       become: yes
       apt:
         pkg: zabbix-agent
         state: latest
+      notify: 'Start agent'
 
 # start service 
-
-    - name: Zabbix | Debian | Start agent service
+  handlers:
+    - name: Zabbix | {{ ansible_distribution }} | Start agent service
+      listen: 'Start agent'
       service:
         name: 'zabbix-agent'
         state: started
