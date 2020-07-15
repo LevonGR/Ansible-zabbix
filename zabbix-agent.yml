@@ -1,7 +1,5 @@
-- hosts: localhost
-
-  vars:
-    zabbix_install_version: "5.0"
+- hosts: 
+    zabbix_agents
 
   tasks:
 
@@ -13,39 +11,35 @@
         pkg: python-pycurl
         state: present
   
-    - name: Zabbix | {{ ansible_distribution }} | General | Add the Zabbix repository
+    - name: Zabbix | {{ ansible_distribution }} | General | Get Zabbix repository
+      get_url:
+        url: "http://repo.zabbix.com/zabbix/{{ zabbix_install_version }}/ubuntu/pool/main/z/zabbix-release/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
+        dest: /tmp
+     
+    - name: Zabbix | {{ ansible_distribution }} | General | Add Zabbix repo
       become: yes
-      register: fresh_repo
       apt:
-        deb: "http://repo.zabbix.com/zabbix/{{ zabbix_install_version }}/{{ ansible_distribution | lower }}/pool/main/z/zabbix-release/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
+        deb: "/tmp/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
         state: present
-        update_cache: yes
-
+     
     - name: Zabbix | {{ ansible_distribution }} | General | Update apt cache with new repo data
       become: yes
       apt:
         update_cache: yes
-      when:
-        - fresh_repo.changed == True
 
 # install agent
-
-    - name: Zabbix | {{ ansible_distribution }} | Update apt cache with new zabbix agent versions
-      become: yes
-      apt:
-        update_cache: yes
-        cache_valid_time: 3600
 
     - name: Zabbix | {{ ansible_distribution }} | Make sure Zabbix agent is installed
       become: yes
       apt:
         pkg: zabbix-agent
-        state: latest
+        state: present
       notify: 'Start agent'
 
 # start service 
+
   handlers:
-    - name: Zabbix | {{ ansible_distribution }} | Start agent service
+    - name: Zabbix | Start agent service
       listen: 'Start agent'
       service:
         name: 'zabbix-agent'

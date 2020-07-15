@@ -1,8 +1,5 @@
 - hosts: 
-    localhost
-  vars:
-    zabbix_server_db_type: "Mysql"
-    zabbix_install_version: "5.0"
+    zabbix_servers
   
   tasks:
 
@@ -14,46 +11,47 @@
         pkg: python-pycurl
         state: present
   
-    - name: Zabbix | {{ ansible_distribution }} | General | Add the Zabbix repository
+    - name: Zabbix | {{ ansible_distribution }} | General | Get Zabbix repository
+      get_url:
+        url: "http://repo.zabbix.com/zabbix/{{ zabbix_install_version }}/ubuntu/pool/main/z/zabbix-release/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
+        dest: /tmp
+     
+    - name: Zabbix | {{ ansible_distribution }} | General | Add Zabbix repo
       become: yes
-      register: fresh_repo
       apt:
-        deb: "http://repo.zabbix.com/zabbix/{{ zabbix_install_version }}/ubuntu/pool/main/z/zabbix-release/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
+        deb: "/tmp/zabbix-release_{{ zabbix_install_version }}-1+{{ ansible_distribution_release }}_all.deb"
         state: present
-        update_cache: yes
-
+     
     - name: Zabbix | {{ ansible_distribution }} | General | Update apt cache with new repo data
       become: yes
       apt:
         update_cache: yes
-      when:
-        - fresh_repo.changed == True
 
 # install server
-
-    - name: Zabbix | {{ ansible_distribution }} | Update apt cache with new zabbix server versions
-      become: yes
-      apt:
-        update_cache: yes
-        cache_valid_time: 3600
-
+    
     - name: Zabbix | {{ ansible_distribution }} | Make sure Zabbix server is installed
       become: yes
       apt:
         pkg: "zabbix-server-{{ zabbix_server_db_type | lower }}"
-        state: latest
+        state: present
 
     - name: Zabbix | {{ ansible_distribution }} | Make sure additional packages installed for Zabbix server
       become: yes
       apt:
         pkg: snmp
         state: latest
+      
+    - name: Zabbix | {{ ansible_distribution }} | Make sure Zabbix server frontend is installed
+      become: yes
+      apt:
+        pkg: zabbix-frontend-php
+        state: latest
       notify: 'Start server'
         
 # start service 
 
   handlers:
-    - name: Zabbix | {{ ansible_distribution }} | Start server service
+    - name: Zabbix | Start server service
       listen: 'Start server'
       service:
         name: 'zabbix-server'
